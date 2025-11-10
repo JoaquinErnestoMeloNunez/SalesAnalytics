@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-SalesAnalytics.WksLoadDwh-a70408ed-cf80-45f6-9363-b5b058c34864</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Data\customers.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\orders.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\order_details.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\products.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SalesAnalytics.Application\SalesAnalytics.Application.csproj" />
+    <ProjectReference Include="..\SalesAnalytics.Domain\SalesAnalytics.Domain.csproj" />
+    <ProjectReference Include="..\SalesAnalytics.Persistence\SalesAnalytics.Persistence.csproj" />
+  </ItemGroup>
+</Project>
