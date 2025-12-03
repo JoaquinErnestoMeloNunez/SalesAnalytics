@@ -24,17 +24,12 @@ namespace SalesAnalytics.Persistence.Repositories.Csv
         {
             try
             {
-                //
-                // FASE DE EXTRACCIÓN (E)
-                //
                 _logger.LogInformation("Starting Order Extractor...");
-                // Tu diseño de repo ignora el parámetro, así que pasamos string.Empty
                 var ordersTask = _orderReader.ReadFileAsync<Order>();
 
                 _logger.LogInformation("Iniciando extracción de OrderDetails...");
                 var orderDetailsTask = _orderDetailReader.ReadFileAsync<OrderDetail>();
 
-                // Ejecución paralela de ambas tareas
                 await Task.WhenAll(ordersTask, orderDetailsTask);
 
                 var orders = (await ordersTask).ToList();
@@ -42,9 +37,6 @@ namespace SalesAnalytics.Persistence.Repositories.Csv
 
                 _logger.LogInformation("Extracción completa. Orders: {OrderCount}, OrderDetails: {DetailCount}", orders.Count, orderDetails.Count);
 
-                //
-                // FASE DE TRANSFORMACIÓN (T)
-                //
                 _logger.LogInformation("Iniciando transformación (join) de datos de ventas...");
 
                 // LINQ para hacer el join en memoria

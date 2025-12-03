@@ -1,5 +1,13 @@
+using Microsoft.EntityFrameworkCore;
 using SalesAnalytics.Application.Repositories.Csv;
+using SalesAnalytics.Application.Repositories.Db;
+using SalesAnalytics.Application.Repositories.Dwh;
+using SalesAnalytics.Application.Services;
 using SalesAnalytics.Persistence.Repositories.Csv;
+using SalesAnalytics.Persistence.Repositories.Db;
+using SalesAnalytics.Persistence.Repositories.Db.Context;
+using SalesAnalytics.Persistence.Repositories.Dwh;
+using SalesAnalytics.Persistence.Repositories.Dwh.Context;
 
 namespace SalesAnalytics.WksLoadDwh
 {
@@ -46,7 +54,19 @@ namespace SalesAnalytics.WksLoadDwh
                     sp.GetRequiredService<ILogger<CsvOrderDetailReaderRepository>>()
                 ));
 
+            builder.Services.AddDbContext<SaleContext>(options =>
+                options.UseSqlServer(configuration.GetConnectionString("ExternalSalesDb")));
+
+            // Repo que usa el DbContext
+            builder.Services.AddScoped<ISaleDbReaderRepository, SaleDbReaderRepository>();
+
             builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+
+            builder.Services.AddDbContext<DwhSaleAnalitycsContext>(options =>
+                options.UseSqlServer(configuration.GetConnectionString("DataWarehouse")));
+
+            builder.Services.AddScoped<IDwhRepository, DwhRepository>();
+            builder.Services.AddScoped<IDwhHandlerService, DwhHandlerService>();
 
             builder.Services.AddHostedService<Worker>();
 

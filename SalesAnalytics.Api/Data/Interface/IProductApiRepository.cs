@@ -1,6 +1,6 @@
-﻿using SalesAnalytics.Domain.Entities.Csv;
+﻿using SalesAnalytics.Api.Data.Entities;
 
-namespace SalesAnalytics.Domain.Entities.Api
+namespace SalesAnalytics.Api.Data.Interface
 {
     public interface IProductApiRepository
     {

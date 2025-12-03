@@ -1,6 +1,6 @@
-﻿using SalesAnalytics.Domain.Entities.Csv;
+﻿using SalesAnalytics.Api.Data.Entities;
 
-namespace SalesAnalytics.Application.Repositories
+namespace SalesAnalytics.Persistence.Repositories.Api
 {
     public interface ICustomerApiRespository
     {
