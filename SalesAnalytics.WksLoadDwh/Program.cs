@@ -66,7 +66,7 @@ namespace SalesAnalytics.WksLoadDwh
                 options.UseSqlServer(configuration.GetConnectionString("DataWarehouse")));
 
             builder.Services.AddScoped<IDwhRepository, DwhRepository>();
-            builder.Services.AddScoped<IDwhHandlerService, DwhHandlerService>();
+            builder.Services.AddScoped<IDwhHandlerService, DwhTransformService>();
 
             builder.Services.AddHostedService<Worker>();
 

@@ -4,6 +4,7 @@ using SalesAnalytics.Application.Dtos;
 using SalesAnalytics.Application.Repositories.Dwh;
 using SalesAnalytics.Application.Services;
 using SalesAnalytics.Domain.Entities.Dwh.Dimensions;
+using SalesAnalytics.Domain.Entities.Dwh.Facts;
 using SalesAnalytics.Persistence.Repositories.Dwh.Context;
 
 namespace SalesAnalytics.Persistence.Repositories.Dwh
@@ -19,7 +20,7 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
             _logger = logger;
         }
 
-        public async Task<Result> LoadDimsDataAsync(DimDtos dimDtos)
+        public async Task<Result> LoadDataAsync(DwhLoadDto data)
         {
             var result = new Result();
             var strategy = _context.Database.CreateExecutionStrategy();
@@ -29,11 +30,11 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    _logger.LogInformation("Iniciando carga masiva de Dimensiones...");
+                    _logger.LogInformation("**Iniciando carga de Dimensiones**");
 
-                    if (dimDtos.Customers != null && dimDtos.Customers.Any())
+                    if (data.Customers != null && data.Customers.Any())
                     {
-                        var customersEntities = dimDtos.Customers.Select(c => new DimCustomers
+                        var customersEntities = data.Customers.Select(c => new DimCustomers
                         {
                             Customer_Id = c.CustomerID,
                             Customer_Name = c.CustomerName,
@@ -44,9 +45,9 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
                         await _context.DimCustomers.AddRangeAsync(customersEntities);
                     }
 
-                    if (dimDtos.Products != null && dimDtos.Products.Any())
+                    if (data.Products != null && data.Products.Any())
                     {
-                        var productsEntities = dimDtos.Products.Select(p => new DimProducts
+                        var productsEntities = data.Products.Select(p => new DimProducts
                         {
                             Product_Id = p.ProductID,
                             Product_Name = p.ProductName ?? "Sin Nombre",
@@ -57,16 +58,23 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
                         await _context.DimProducts.AddRangeAsync(productsEntities);
                     }
 
-                    if (dimDtos.Dates != null && dimDtos.Dates.Any())
+                    if (data.Dates != null && data.Dates.Any())
                     {
-                        await LoadDatesInternalAsync(dimDtos.Dates);
+                        await LoadDatesInternalAsync(data.Dates);
+                    }
+                    
+                    await _context.SaveChangesAsync();
+
+                    if (data.Sales != null && data.Sales.Any())
+                    {
+                        await LoadFactsInternalAsync(data.Sales);
                     }
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
                     result.IsSuccess = true;
-                    result.Message = $"Carga Exitosa. Clientes: {dimDtos.Customers?.Count}, Productos: {dimDtos.Products?.Count}";
+                    result.Message = $"Carga Exitosa. Clientes: {data.Customers?.Count}, Productos: {data.Products?.Count}";
                     _logger.LogInformation(result.Message);
                 }
                 catch (Exception ex)
@@ -83,18 +91,19 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
 
         public async Task CleanDataWarehouseAsync()
         {
-            _logger.LogInformation("Iniciando limpieza del Data Warehouse...");
+            _logger.LogInformation("***Iniciando limpieza del Data Warehouse***");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Fact].[FactVentas]");
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Customers]");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Customers]', RESEED, 0)");
-
-                // Borramos Productos
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Products]");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Products]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Date]");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Date]', RESEED, 0)");
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Fact].[FactVentas]");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Fact].[FactVentas]', RESEED, 0)");
                 await transaction.CommitAsync();
 
                 _logger.LogInformation("Data Warehouse limpio.");
@@ -140,9 +149,36 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
             }
 
             if (datesToInsert.Any())
-            {
+            {   
                 await _context.DimDates.AddRangeAsync(datesToInsert);
                 _logger.LogInformation("Se detectaron {Count} fechas nuevas.", datesToInsert.Count);
+            }
+        }
+
+        private async Task LoadFactsInternalAsync(List<FactSalesDto> salesDtos)
+        {
+            var customers = await _context.DimCustomers.Where(c => c.Customer_Id != null).ToListAsync();
+            var products = await _context.DimProducts.ToListAsync();
+            var dates = await _context.DimDates.ToListAsync();
+
+            var facts = (from venta in salesDtos
+                         join cust in customers on venta.SourceCustomerId equals cust.Customer_Id
+                         join prod in products on venta.SourceProductId equals prod.Product_Id
+                         let ventaDateId = (venta.OrderDate.Year * 10000) + (venta.OrderDate.Month * 100) + venta.OrderDate.Day
+                         join date in dates on ventaDateId equals date.Date_Id
+
+                         select new FactVentas
+                         {
+                             FK_Customer = cust.Customer_Key,
+                             FK_Product = prod.Product_Key,
+                             FK_Date = date.Date_Key,
+                             Quantity = venta.Quantity,
+                             Total_Venta = venta.Total_Venta,
+                             Status = venta.Status
+                         }).ToList();
+            if (facts.Any())
+            {
+                await _context.FactSales.AddRangeAsync(facts);
             }
         }
     }

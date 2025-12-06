@@ -6,7 +6,7 @@ namespace SalesAnalytics.Application.Repositories.Dwh
 {
     public interface IDwhRepository
     {
-        Task<Result> LoadDimsDataAsync(DimDtos dimDtos);
+        Task<Result> LoadDataAsync(DwhLoadDto data);
         Task CleanDataWarehouseAsync();
     }
 }

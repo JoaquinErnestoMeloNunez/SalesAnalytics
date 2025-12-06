@@ -6,22 +6,25 @@ using System.Globalization;
 
 namespace SalesAnalytics.Application.Services
 {
-    public class DwhHandlerService : IDwhHandlerService
+    public class DwhTransformService : IDwhHandlerService
     {
         private readonly IDwhRepository _dwhRepository;
-        private readonly ILogger<DwhHandlerService> _logger;
+        private readonly ILogger<DwhTransformService> _logger;
 
-        public DwhHandlerService(IDwhRepository dwhRepository, ILogger<DwhHandlerService> logger)
+        public DwhTransformService(IDwhRepository dwhRepository, ILogger<DwhTransformService> logger)
         {
             _dwhRepository = dwhRepository;
             _logger = logger;
         }
 
-        public async Task<Result> TransformAndLoadDimensions(List<Customer> rawCustomers, List<Product> rawProducts, List<Sale> sales)
+        public async Task<Result> TransformAndLoadDimensions(
+            List<Customer> rawCustomers, 
+            List<Product> rawProducts, 
+            List<Sale> sales)
         {
             _logger.LogInformation("Handler: Iniciando Transformación de datos...");
 
-            var dimDtos = new DimDtos();
+            var dimDtos = new DwhLoadDto();
 
             dimDtos.Customers = rawCustomers.Select(c => new CustomerDto
             {
@@ -39,7 +42,7 @@ namespace SalesAnalytics.Application.Services
                 ListPrice = p.Price
             }).ToList();
 
-            _logger.LogInformation("Handler: Calculando Dimensión Tiempo...");
+            _logger.LogInformation("Handler: Calculando Dim_Date");
 
             var uniqueDates = sales
                 .Select(s => s.OrderDate)
@@ -67,9 +70,19 @@ namespace SalesAnalytics.Application.Services
                 };
             }).ToList();
 
+            dimDtos.Sales = sales.Select(s => new FactSalesDto
+            {
+                SourceCustomerId = s.CustomerID,
+                SourceProductId = s.ProductID,
+                OrderDate = s.OrderDate.ToDateTime(TimeOnly.MinValue),
+                Quantity = s.Quantity,
+                Total_Venta = s.TotalPrice,
+                Status = s.Status ?? "Desconocido"
+            }).ToList();
+
             _logger.LogInformation("Handler: Datos transformados. Enviando al Repositorio...");
 
-            return await _dwhRepository.LoadDimsDataAsync(dimDtos);
+            return await _dwhRepository.LoadDataAsync(dimDtos);
         }
     }
 }

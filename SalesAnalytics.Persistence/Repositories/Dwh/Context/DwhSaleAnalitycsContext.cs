@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SalesAnalytics.Domain.Entities.Dwh.Dimensions;
+using SalesAnalytics.Domain.Entities.Dwh.Facts;
 
 namespace SalesAnalytics.Persistence.Repositories.Dwh.Context
 {
@@ -12,6 +13,7 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh.Context
         public DbSet<DimCustomers> DimCustomers { get; set; }
         public DbSet<DimProducts> DimProducts { get; set; }
         public DbSet<DimDate> DimDates { get; set; }
+        public DbSet<FactVentas> FactSales { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +57,27 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh.Context
                 entity.Property(e => e.Dia_Mes).HasColumnName("Dia_Mes");
                 entity.Property(e => e.Dia_Semana).HasColumnName("Dia_Semana");
                 entity.Property(e => e.Nombre_Dia).HasColumnName("Nombre_Dia").HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<FactVentas>(entity =>
+            {
+                entity.ToTable("FactVentas", "Fact");
+                entity.HasKey(e => e.Venta_Id);
+
+                entity.Property(e => e.Venta_Id)
+                      .HasColumnName("Venta_Id")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.FK_Product).HasColumnName("FK_Product");
+                entity.Property(e => e.FK_Customer).HasColumnName("FK_Customer");
+                entity.Property(e => e.FK_Date).HasColumnName("FK_Date");
+                entity.Property(e => e.Quantity).HasColumnName("Quantity");
+
+                entity.Property(e => e.Total_Venta)
+                      .HasColumnName("Total_Venta")
+                      .HasColumnType("money");
+
+                entity.Property(e => e.Status).HasColumnName("Status").HasMaxLength(50);
             });
         }
     }
