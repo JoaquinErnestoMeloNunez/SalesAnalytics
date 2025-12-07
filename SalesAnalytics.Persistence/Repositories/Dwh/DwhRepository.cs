@@ -96,14 +96,15 @@ namespace SalesAnalytics.Persistence.Repositories.Dwh
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Fact].[FactVentas]");
+                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Fact].[FactVentas]', RESEED, 0)");
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Customers]");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Customers]', RESEED, 0)");
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Products]");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Products]', RESEED, 0)");
                 await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Dimension].[Dim_Date]");
                 await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Dimension].[Dim_Date]', RESEED, 0)");
-                await _context.Database.ExecuteSqlRawAsync("DELETE FROM [Fact].[FactVentas]");
-                await _context.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('[Fact].[FactVentas]', RESEED, 0)");
+                
                 await transaction.CommitAsync();
 
                 _logger.LogInformation("Data Warehouse limpio.");
